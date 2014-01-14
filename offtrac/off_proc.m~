@@ -1,0 +1,47 @@
+function [ array ] = off_proc(datapath,ncfile,month,year)
+% OFF_PROC: Driver routine to extract SF6 and CFCs
+% Calls off_extrday, off_conv2grav
+% INPUT:
+%   tspath (string): path to location of ts.nc
+%   ncfile (string): path to Offtrac output
+%   month: month to extract information
+%   tracpath (string): path to tracer .mat files
+
+% Load T,S,P
+[T S P]=off_loadclim(datapath,month);
+
+array.month=month;
+array.lath=nc_varget([datapath 'metrics.nc'],'lath');
+array.lonh=nc_varget([datapath 'metrics.nc'],'lonh');
+array.geolat=nc_varget([datapath 'metrics.nc'],'geolat');
+array.geolon=nc_varget([datapath 'metrics.nc'],'geolon');
+
+% Extract concentration data from offtrac
+array=off_extrday(ncfile,month,array);
+
+% Convert to gravimetric units
+disp('Converting concentrations to gravimetric units');
+
+array.cfc11_kg=real(off_conv2grav(array.mn_cfc11,T,S,array.depth));
+array.cfc12_kg=real(off_conv2grav(array.mn_cfc12,T,S,array.depth));
+array.sf6_kg=real(off_conv2grav(array.mn_sf6,T,S,array.depth));
+
+% Calculate column inventory in gravimetric
+disp('Calculating column inventories')
+array.cfc11_inv_kg=off_globalinv(array,array.cfc11_kg);
+array.cfc12_inv_kg=off_globalinv(array,array.cfc12_kg);
+array.sf6_inv_kg=off_globalinv(array,array.sf6_kg);
+
+if nargin>3
+    
+    % Calculate relative saturation relative to surface saturation
+    disp('Calculating Relative Saturations')
+    load([tracpath filesep 'cfc11.mat'])
+    load([tracpath filesep 'cfc12.mat'])
+    load([tracpath filesep  'sf6.mat'])
+    
+    
+    
+end
+
+end

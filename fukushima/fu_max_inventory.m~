@@ -1,0 +1,22 @@
+ncfile='/scratch/models/offtrac/runs/fukushima_inert/FUKUSHIMA_INERT.0722.nc';
+datapath='/scratch/data/offtrac/input/';
+geolat=nc_varget([datapath 'metrics.nc'],'geolat');
+geolon=nc_varget([datapath 'metrics.nc'],'geolon');
+time=nc_varget(ncfile,'Time');
+ntime=length(time);
+
+maxinv_loc=zeros(ntime,2);
+for i=1:length(time)
+    disp(sprintf('Month %d of %d',i,ntime))
+    mn_cs137=nc_varget(ncfile,'mn_cs137',[i-1 0 0 0],[1 -1 -1 -1]);
+    mn_h=nc_varget(ncfile,'mn_h',[i-1 0 0 0],[1 -1 -1 -1]);
+    depth=cumsum(mn_h,2);
+    [maxval maxidx]=max(mn_cs137(:));
+    [maxi maxj maxk]=ind2sub(size(mn_cs137,maxidx));
+    
+    inv_cs137=squeeze(sum(mn_cs137,1));
+    [maxval maxidx]=max(inv_cs137(:));
+    [maxi maxj]=ind2sub(size(geolat),maxidx);
+    maxinv_loc(i,:)=[geolon(maxi,maxj) geolat(maxi,maxj)];    
+end
+    

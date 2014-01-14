@@ -1,0 +1,20 @@
+function [ out ] = off_lintracval(year,nval,sval)
+%     Performs a least squares fit to a polynomial of degree 1 for the
+%     given tracer
+
+    idx=find(nval>0);
+
+    poly_nval=regress(year(idx),nval(idx),1),year);
+    poly_sval=polyval(polyfit(year(idx),sval(idx),1),year);
+    poly_nval(poly_nval<0)=0;
+    poly_sval(poly_sval<0)=0;
+    out=[year poly_nval poly_sval];    
+
+    figure
+    hold on
+    plot(year,poly_nval)
+    scatter(year,nval,'x')
+    plot(year,poly_sval)
+    scatter(year,sval,'o')
+    
+end

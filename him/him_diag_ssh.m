@@ -1,0 +1,45 @@
+function [ array ] = him_diag_ssh(ncfile,metricfile,hfield)
+% Calculates mean SSH for each timestep in ncfile weighted by area of the
+% grid cell
+% ncfile: path to datafile
+% metricfile: path to metrics.nc
+% hfield: name of thickness field usually H or HCLIM
+
+    array.time=nc_varget(ncfile,'Time'); 
+    ntime=length(array.time);
+
+%     Get metrics.nc information
+    Ah=nc_varget(metricfile,'Ah');
+    Ah=reshape(Ah,numel(Ah),1);
+    array.geolon=nc_varget(metricfile,'geolon');
+    array.geolat=nc_varget(metricfile,'geolat');
+    wet=nc_varget(metricfile,'wet');
+    dry=~wet;
+    wet=reshape(wet,numel(wet),1);
+    wetidx=find(wet==1);
+    Ah(makevec(dry))=NaN;
+%     Allocate array for global mean ssh
+    array.global_mean_ssh=zeros(ntime,1);
+    array.global_ssh=zeros([ntime size(array.geolon)]);
+    
+    for t=1:ntime
+       disp(sprintf('Month %d/%d',t,ntime))
+       hnow=nc_varget(ncfile,hfield,[t-1 0 0 0],[1 -1 -1 -1]);
+       hnow=squeeze(sum(hnow,1));
+       array.global_ssh(t,:,:)=hnow;
+       hnow=reshape(hnow,numel(hnow),1);
+       array.global_mean_ssh(t)=weight_mean(hnow(wetidx),Ah(wetidx)); 
+    end
+
+    array.ssh_std=std(array.global_ssh,1);
+    [nlat nlon]=size(array.geolon);
+    array.global_ssh_slope=zeros(size(array.geolon));
+
+    for lat=1:nlat
+	for lon=1:nlon
+		coeffs=polyfit(array.time,squeeze(array.global_ssh(:,lat,lon)),1);
+		array.global_ssh_slope(lat,lon)=coeffs(1);
+	end
+    end
+
+end

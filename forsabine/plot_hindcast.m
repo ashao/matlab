@@ -1,0 +1,83 @@
+function [  figh ] = plot_hindcast( hindpath, outpath )
+%% function [ figh ] = plot_hindcast( hindpath, outpath )
+%   Input:
+%       hindpath: (string) path to the hindcast files
+%       outpath: (string) path to directory where figures will be saved
+%   Function Steps:
+%       1) Extract data from HIM hindcast output
+%       2) Calculate mixed layer density
+%       3) Plot maximal mixed layer depth
+%       4) Overlay with contours of minimal mixed layer density
+
+% Get some necessary HIM metrics (geolat,geolon)
+metrics=nc_getall('/ltraid2/ashao/uw-apl/data/offtrac/input/metrics.nc');
+[nlat nlon]=size(metrics.geolon.data);
+geolon=metrics.geolon.data;
+geolon(geolon<0)=geolon(geolon<0)+360;
+metrics.geolon.data=geolon;
+
+% Establish plotting parameters
+m_proj('Mollweide','lon',[0 140],'lat',[-65 -20]);
+denscontours=1018:0.5:1028;
+
+% Set years over which to extract
+start_year=1948;
+end_year=2007;
+
+% Make a fill matrix for the data variables
+fill3D=[length(start_year:end_year)*12 nlat nlon];
+
+% Make a vector to store figure handles
+figh=zeros(length(start_year:end_year),1);
+
+
+counter=0; % Counting variable for number of total years
+nplots=0; % Counting variable for number of figure windows made
+for year=start_year:end_year;
+    
+    
+    counter=counter+1;
+    subidx=mod(counter,6); % Keep track of which subplot to use
+    if subidx==0
+        subidx=6;
+    end
+    
+    if subidx==1
+        nplots=nplots+1;
+        figh(nplots)=figure;
+        set(figh(nplots),'OuterPosition',[0 0 1920 1080])
+    end
+    
+    fprintf('Plot %d Subplot %d\n',nplots,subidx)
+    
+    % Extract temp/salt/mldepth
+    tsfile=strcat(hindpath,filesep,sprintf('ocean_month.%d.nc',year));
+    hfile=[hindpath filesep sprintf('ocmon_snap.%d.nc',year)];
+    temp=nc_varget(tsfile,'temp',[0 0 0 0],[-1 1 -1 -1]);
+    salt=nc_varget(tsfile,'salt',[0 0 0 0],[-1 1 -1 -1]);
+    mldepth=squeeze(sum(nc_varget(hfile,'h',[0 0 0 0],[-1 2 -1 -1])));
+    dens=sw_dens0(salt,temp);
+    mldepth=squeeze(max(mldepth));
+    dens=squeeze(max(dens));
+    
+    subplot_nospace(3 ,2,subidx)
+    hold on
+    m_contourf(metrics.geolon.data,metrics.geolat.data,mldepth)
+    caxis([20 1000])
+    colorbar
+    [cs v]=m_contour(metrics.geolon.data,metrics.geolat.data,dens,denscontours,...
+        'LineColor','White');
+    clabel(cs,v,'Color','White')
+    
+    m_grid;
+    m_coast('patch',[1 1 1]);
+    
+    title(sprintf('Year %d',year))
+    
+    if subidx==6
+        drawnow
+%         saveas(gcf,strcat(outpath,filesep,sprintf('mldepth_dens.%02d.eps',nplots)),'psc2')
+        exportfig(gcf,strcat(outpath,filesep,sprintf('mldepth_dens.%02d.eps',nplots)),'Format','eps2','Color','cmyk')
+    end
+    
+end

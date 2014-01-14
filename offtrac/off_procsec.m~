@@ -1,0 +1,121 @@
+function [ array ] = off_procsec(datapath, ncfile, tracpath, months, year, latrange, lonrange, layers)
+    
+s_mon=min(months);
+n_mon=length(months);
+
+% time=floor(s_mon/12)*
+
+lath=nc_varget(ncfile,'lath');
+lonh=nc_varget(ncfile,'lonh');
+
+latidx=find(lath>=min(latrange) & lath<=max(latrange));
+lonidx=find(lonh>=min(lonrange) & lonh<=max(lonrange));
+
+s_latidx=min(latidx)-1;
+n_lat=length(latidx);
+s_lonidx=min(lonidx)-1;
+n_lon=length(lonidx);
+
+
+s_layer=min(layers)-1;
+n_layer=length(min(layers):max(layers));
+
+start_3D=[s_mon s_latidx s_lonidx];
+end_3D=[n_mon n_lat n_lon];
+start_4D=[s_mon s_layer s_latidx s_lonidx];
+end_4D=[n_mon n_layer n_lat n_lon];
+
+tspath=[datapath filesep 'ts.nc'];
+ppath=[datapath filesep 'gasx_ocmip2_himgrid.nc']; 
+
+array.lath=lath(latidx);
+array.lonh=lonh(lonidx);
+array.mn_h=nc_varget(ncfile,'mn_h',start_4D,end_4D);
+array.depth=cumsum(array.mn_h,2);
+mldepth=nc_varget(ncfile,'mn_h',[s_mon 0 s_latidx s_lonidx],[n_mon 4 n_lat n_lon]);
+array.months=min(months):max(months);
+array=setfield(array,'mn_sf6',nc_varget(ncfile,'mn_sf6',start_4D,end_4D));
+array=setfield(array,'mn_cfc11',nc_varget(ncfile,'mn_cfc11',start_4D,end_4D));
+array=setfield(array,'mn_cfc12',nc_varget(ncfile,'mn_cfc12',start_4D,end_4D));
+
+
+T=nc_varget(tspath,'TEMPCLIM',[0 s_layer s_latidx s_lonidx],[12 n_layer n_lat n_lon]);
+S=nc_varget(tspath,'SALTCLIM',[0 s_layer s_latidx s_lonidx],[12 n_layer n_lat n_lon]);
+P=nc_varget(ppath,'OCMIP_ATMP',[0 s_latidx s_lonidx],[12 n_lat n_lon]);
+
+load([tracpath filesep 'cfc11.mat'])
+load([tracpath filesep 'cfc12.mat'])
+load([tracpath filesep  'sf6.mat'])
+
+fillmat_3D=zeros(length(months), n_lat, n_lon);
+fillmat_4D=zeros(length(months),n_layer,n_lat,n_lon);
+[length(months),n_layer,n_lat,n_lon]
+array.T=fillmat_4D;
+array.S=fillmat_4D;
+array.P=fillmat_4D;
+array.cfc11_sat=fillmat_3D;
+array.cfc12_sat=fillmat_3D;
+array.sf6_sat=fillmat_3D;
+array.cfc11_relsat=fillmat_3D;
+array.cfc12_relsat=fillmat_3D;
+array.sf6_relsat=fillmat_3D;
+array.kg_cfc11=fillmat_4D;
+array.kg_cfc12=fillmat_4D;
+array.kg_sf6=fillmat_4D;
+
+time=year;
+
+latgrid(1,:,:)=geolat;
+latgrid=repmat(latgrid,[n_layer 1 1]);
+
+for i=1:length(months)
+    disp(sprintf('%d / %d \n',i,length(months)))
+  midx=mod(array.months(i),12)+1;
+  if midx==0
+    midx=12;
+  end
+
+  Tmat=squeeze(T(midx,:,:,:));
+  Smat=squeeze(S(midx,:,:,:));
+  Ptmp=P(midx,:,:);
+  
+  depth=squeeze(array.depth(i,:,:,:));  
+  Pmat(1,:,:)=Ptmp;
+
+  
+  for j=2:n_layer
+	Pmat(j,:,:)=squeeze(Ptmp)+squeeze(array.depth(midx,j,:,:))/10;
+  end
+	 
+ 
+  array.T(i,:,:,:)=Tmat;
+  array.S(i,:,:,:)=Smat;
+  array.P(i,:,:,:)=Pmat;
+  array.mldepth(i,:,:,:)=squeeze(sum(mldepth(i,:,:,:),2));
+  time=time+eomday(1,2)/365;
+  disp(time)
+
+  %ptT=sw_ptmp(Smat,Tmat,Pmat,zeros(size(Smat)));
+  %ptT=reshape(ptT,size(depth));
+% Calculate Saturation Value
+  array.cfc11_sat(i,:,:)=trac_calcsat( cfc11, time, squeeze(Tmat(1,:,:)), squeeze(Smat(1,:,:)), ...
+	 squeeze(Pmat(1,:,:)), array.lath, array.lonh );
+  array.cfc12_sat(i,:,:)=trac_calcsat( cfc12, time, squeeze(Tmat(1,:,:)), squeeze(Smat(1,:,:)), ...
+	 squeeze(Pmat(1,:,:)), array.lath, array.lonh );
+  array.sf6_sat(i,:,:)=trac_calcsat( sf6, time, squeeze(Tmat(1,:,:)), squeeze(Smat(1,:,:)), ...
+	 squeeze(Pmat(1,:,:)), array.lath, array.lonh );
+ 
+%  Calculate Relative Surface Saturation
+  array.cfc11_relsat(i,:,:)=squeeze(array.mn_cfc11(i,1,:,:))./squeeze(array.cfc11_sat(i,:,:));
+  array.cfc12_relsat(i,:,:)=squeeze(array.mn_cfc12(i,1,:,:))./squeeze(array.cfc12_sat(i,:,:));
+  array.sf6_relsat(i,:,:)=squeeze(array.mn_sf6(i,1,:,:))./squeeze(array.sf6_sat(i,:,:));
+  
+%   Convert to gravimetric units
+    pres=sw_pres(depth,latgrid);
+    rho=sw_dens(Tmat,Smat,pres);
+    array.kg_cfc11(i,:,:,:)=array.mn_cfc11(i,:,:,:)*1000./rho;    
+    array.kg_cfc12(i,:,:,:)=array.mn_cfc12(i,:,:,:)*1000./rho;    
+    array.kg_sf6(i,:,:,:)=array.mn_cfc11(i,:,:,:)*1000./rho;
+
+  
+end

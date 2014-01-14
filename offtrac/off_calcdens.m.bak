@@ -1,0 +1,52 @@
+function array = off_calcdens(datapath)
+% Calculates potential density from HIM/Offtrac
+% Expects fields T, S, mn_h
+
+start4d=zeros(1,4);
+end4d=[12 -1 -1 -1];
+
+T=nc_varget([datapath 'ts.nc'],'TEMPCLIM',start4d,end4d);
+S=nc_varget([datapath 'ts.nc'],'SALTCLIM',start4d,end4d);
+H=nc_varget([datapath 'H-clim.nc'],'HCLIM',[1 0 0 0],end4d);
+lath=nc_varget([datapath 'metrics.nc'],'lath');
+lonh=nc_varget([datapath 'metrics.nc'],'lonh');
+geolat=nc_varget([datapath 'metrics.nc'],'geolat');
+geolon=nc_varget([datapath 'metrics.nc'],'geolon');
+wet=nc_varget([datapath 'metrics.nc'],'wet');
+
+[wetlat wetlon]=find(wet==0);
+% T(:,:,wetlat,wetlon)=NaN;
+
+depth=cumsum(H,2);
+depth(:,1,:,:)=0;
+
+[ntime nlay nlat nlon]=size(T);
+ndat=nlay*nlat*nlon;
+
+latvec(1,:,:)=geolat;
+latvec=reshape(repmat(latvec,[nlay 1 1]),[ndat 1]);
+
+sigmath=zeros(size(T))*NaN;
+
+for i=1:ntime
+    disp(sprintf('Month %d/%d',i,ntime))
+    depthvec=reshape(depth(i,:,:,:),[ndat 1]);
+    pres=reshape(sw_pres(depthvec,latvec),[nlay nlat nlon]);
+%     Tsitu=sw_temp(squeeze(S(i,:,:,:)),squeeze(T(i,:,:,:)),pres,10*ones([nlay nlat nlon]));
+%     pres(:,wetlat,wetlon)=NaN;
+%     whos
+%     sigmath(i,:,:,:)=sw_dens(squeeze(S(i,:,:,:)),Tsitu,pres)-1000;
+      sigmath(i,:,:,:)=sw_dens0(squeeze(S(i,:,:,:)),squeeze(T(i,:,:,:)))-1000;
+end
+
+
+
+array.geolon=geolon;
+array.geolat=geolat;
+array.T=T;
+array.S=S;
+array.depth=depth;
+array.H=H;
+array.ptdens=sigmath;
+    
+    

@@ -1,0 +1,9 @@
+1.	sw_bfrq passes back planetary potential vorticity and 
+	mid-point pressures.  Also uses 30 N for calculating 
+	gravity and coriolis parameter if LAT is not passed.
+
+2.	sw_alpha sw_aonb and sw_beta all modified to work and 
+	to accept in situ temperature as input.
+
+3.	sw_gvel now uses dist.m instead of sw_dist.m for improved 
+	distances,  Also changed OMEGA to 7.292e-5.

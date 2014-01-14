@@ -1,0 +1,39 @@
+function [ ] = off_plotlayer( array, field, options )
+% OFF_PLOTLAYER: Contour plot of field for a layer given in options
+%INPUT:
+%   array: structure from off_proc.m
+%   field: name of field to plot
+%   options: structure containing fields:
+%       layer: layer to plot
+%       contourlevel (opt): Specify contour levels
+%       caxis (opt): Colorbar axis
+
+data=getfield(array,field);
+
+if ~isfield(options,'contourlevel')
+    interval=(max(data(:))-min(data(:)))/15;
+    options.contourlevel=min(data(:)):interval:max(data(:));
+end
+
+if ~isfield(options,'layer')
+    options.layer=1;
+end
+
+if ~isfield(options,'caxis')
+    options.caxis='auto';
+end
+
+if ~isfield(options,'axis')
+    options.axis='auto';
+end
+
+if isfield(options,'minlat') && isfield(options,'maxlat') && isfield(options,'minlon') && isfield(options,'maxlon'
+[c h]=contourf(array.geolon,array.geolat,squeeze( data(options.layer,:,:) ).*array.wet, options.contourlevel);
+caxis(options.caxis);
+colorbar
+clabel(c,h);
+title([ field ' in layer ' num2str(options.layer) ' for month ' num2str(array.month)] )
+axis(options.axis);
+
+
+end

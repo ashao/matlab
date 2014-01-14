@@ -1,0 +1,25 @@
+function [ array ] = fu_extract( ncfile, datapath, latrange, lonrange, daterange, layers )
+
+    geolat=nc_varget([datapath 'metrics.nc'],'geolat');
+    geolon=nc_varget([datapath 'metrics.nc'],'geolon');
+    lath=nc_varget([datapath 'metrics.nc'],'lath');
+    lonh=nc_varget([datapath 'metrics.nc'],'lonh');
+    
+    latidx=findrange(lath,min(latrange),max(latrange));
+    lonidx=findrange(lath,min(latrange),max(lonrange));
+    
+    geolat=geolat(latrange,lonrange);
+    geolon=geolon(latrange,lonrange);
+    
+    ntime=length(min(daterange):max(daterange));
+    nlayers=length(min(layers):max(layers));
+    nlat=length(latidx);
+    nlon=length(lonidx);
+    start4d=[min(daterange) min(layers)-1 min(latidx)-1 min(lonidx)-1];
+    end4d=[ntime nlayers nlat nlon];
+    
+    
+    
+    
+end
+

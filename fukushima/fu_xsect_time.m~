@@ -1,0 +1,68 @@
+m_proj('Mercator','lon',[-240 -80],'lat',[0 60]);
+for i=1:720
+    clf
+subplot(4,2,1)
+lonidx=110;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(lonidx),i))
+shading flat
+% colorbar
+subplot(4,2,2)
+lonidx=100;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(lonidx),i))
+title(sprintf('Longitude %d Month: %d',array.lonh(100),i))
+shading flat
+% colorbar
+subplot(4,2,3)
+lonidx=90;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(90),i))
+shading flat
+
+subplot(4,2,4)
+lonidx=80;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(110),i))
+shading flat
+% colorbar
+subplot(4,2,5)
+lonidx=70;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(100),i))
+shading flat
+% colorbar
+subplot(4,2,6)
+lonidx=60;
+pcolor(repmat(array.geolat(:,lonidx)',[30 1]),-squeeze(array.depth(i,:,:,lonidx)),double(squeeze(array.mn_inert(i,:,:,lonidx))))
+xlim([0 60])
+ylim([-600 0])
+caxis([0 2e-5])
+title(sprintf('Longitude %d Month: %d',array.lonh(90),i))
+shading flat
+
+
+% colorbar
+% title(sprintf('Latitude 45.5 Month: %d',i))
+subplot(4,2,[7 8])
+m_pcolor(array.geolon,array.geolat,double(squeeze(array.mn_cs137(i,1,:,:))))
+colorbar
+shading flat
+m_grid
+pause(0.1)
+end
