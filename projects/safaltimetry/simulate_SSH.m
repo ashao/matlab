@@ -14,7 +14,7 @@
         track_heights=erf((ones(nl,1)*simy-y0*ones(1,length(simy)))/(L));
 
 %         track_heights=erf(argument.^2);
-        track_heights=track_heights+0.4*randn(size(track_heights));
+        track_heights=track_heights+0.2*randn(size(track_heights));
         simskew=skewness(track_heights);
 
     end
