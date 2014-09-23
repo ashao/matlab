@@ -1,4 +1,5 @@
-function [ gamma delta fval flag ] = match1dTTD( pCFC, sat, trac, meastime, varargin )
+function [ gamma, delta, fval, flag ] = match1dTTD( ...
+    pCFC, sat, trac, meastime, varargin )
 %% match1dTTD: Attempts to find an inverse Gaussian that when convolved
 %  with the atmospheric source functon yields the bottle concentation
 %   Input:
@@ -20,11 +21,14 @@ function [ gamma delta fval flag ] = match1dTTD( pCFC, sat, trac, meastime, vara
 %       This routine attempts to match the analytic solution to the 1D linear
 %       transport equation, an inverse Gaussian, with the observed
 %       concentration and an atmospheric source scaled by the estimated
-%       saturation level. This is done by using simulated annealing to
+%       saturation level. This is done by using a patternsearch method to
 %       minimize the cost function ( (conv(TTD,tracsource)-pCFC)./pCFC ).^2
 %% Parse various options
 i=1;
 pCFC=double(pCFC);
+%% Get sizes of input variables
+ntrac = length(pCFC);
+% fprintf('Number of Tracers: %d\n',ntrac);
 
 while i <= length(varargin)
     
@@ -82,10 +86,10 @@ if ~exist('x0','var')
     x0=randi([10,500],2,1); % Initial guess, doesn't seem to have much effect
 end
 if ~exist('lb','var')
-    lb = [0.1 0.1]; % Lower bound for mean age and width
+    lb = ones(ntrac,1)*0.1; % Lower bound for mean age and width
 end
 if ~exist('ub','var')
-    ub = [2000 2000]; % Upper bound for mean age and width
+    ub = ones(ntrac,1)*2000; % Upper bound for mean age and width
 end
 if ~exist('method','var')
     method = 'patternsearch';
@@ -96,9 +100,7 @@ end
 if strcmpi(confun,'fixed') & ~exist('pe','var')
     pe = 1.0;
 end
-%% Get sizes of input variables
-ntrac = length(pCFC);
-% fprintf('Number of Tracers: %d\n',ntrac);
+
 
 %% Scale the source function by estimated saturation
 if length(sat)==1 % Do this if a constant value of saturation assumed
@@ -113,6 +115,9 @@ source_scaled = fliplr(sat(:,intime).*trac.atmconc(:,intime));
 source_scaled(isnan(source_scaled))=0;
 time_scaled = meastime - trac.time(intime); % Calculate as time since measurement
 time_scaled = flipud(time_scaled)';
+timeintp = linspace(0,max(time_scaled),2000);
+source_scaled = interp1(time_scaled,source_scaled,timeintp,'linear','extrap');
+time_scaled = timeintp;
 % plot(time_scaled,source_scaled)
 %
 %% Perform the minimization using two different techniques
@@ -123,8 +128,8 @@ switch lower(method)
         [optpar fval] = simulannealbnd(@evalTTD,x0,lb,ub,options);
         
     case 'patternsearch'
-        options=psoptimset('TolFun',maxerr,'Display','None', ...
-            'UseParallel','never','InitialMeshSize',10,...
+        options=psoptimset('TolFun',maxerr,'Display','none', ...
+            'UseParallel','never','InitialMeshSize',100,...
             'CompletePoll','on','MaxFunEvals',inf,'MaxIter',5000,...
             'TimeLimit',15);
         
@@ -136,7 +141,7 @@ switch lower(method)
         elseif strcmpi(confun,'fixed') % Fixed Peclet Number
             [optpar fval] = patternsearch(@evalTTD_fixed, ...
                 x0,[],[],[],[],lb,ub,options);            
-            gamma=optpar;
+            gamma=optpar(1);
             delta=gamma/sqrt(pe);
         elseif strcmpi(confun,'none') % No constraints on Peclet
             [optpar fval] = patternsearch(@evalTTD_peclet, ...
@@ -164,24 +169,22 @@ end
         for tracidx=1:ntrac
             
             Gconv = trapz(time_scaled,source_scaled(tracidx,:).*G);
-            fval = fval + ( (Gconv-pCFC(tracidx))./pCFC(tracidx) ).^2;
+            fval = fval + ( (Gconv-pCFC(tracidx))./pCFC(tracidx) ).^2;            
             
-            
-        end
-        
-        fval = fval/2;
+        end                
         
     end
 
 % For use with CONSTRAINT=FIXED, assumes delta = gamma/Pe
     function [ fval ] = evalTTD_fixed( gamma )
         fval = 0;        
-        G=inverse_gaussian([gamma gamma/sqrt(pe)],time_scaled);
-        for tracidx=1:ntrac
-            
+        delta = gamma/sqrt(pe);
+        G=inverse_gaussian([gamma delta],time_scaled);
+        for tracidx=1:ntrac            
             Gconv = trapz(time_scaled,source_scaled(tracidx,:).*G);
-            fval = fval + ((Gconv-pCFC(tracidx)).^2./pCFC(tracidx)).^2;
+            fval = fval + ((Gconv-pCFC(tracidx)).^2./pCFC(tracidx)).^2;            
         end
+        fval = sqrt(fval);
     end
 
     function [c,ceq,gradc,gradceq] = pecconstraints( parameters )
@@ -212,5 +215,4 @@ a1 = sqrt ( gamma^3 ./ (4*pi*delta^2.*t.^3) );
 a2 = -gamma*(t-gamma).^2./(4*delta^2*t);
 G = a1 .* exp( a2 );
 G( t==0 ) = 0;
-
 end

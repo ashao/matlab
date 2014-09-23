@@ -1,7 +1,8 @@
 inpath = 'C:\Users\ashao\Data\vxxc_matlab';
 files = dir([inpath filesep 't*.mat']);
 nfiles = length(files);
-ntracks = 1;
+ntracks = 254;
+load C:\Users\ashao\Documents\GitHub\matlab\projects\safaltimetry\longterm\longterm_saf.mat
 %%
 clf
 minlat = -90;
@@ -16,7 +17,7 @@ set(gca,'Color',[1 1 1]*1);
 caxis([-0.5 0.5])
 % worldmap
 
-for tidx = 1:3:254
+for tidx = 1:1:254
     fprintf('Track %d\n',tidx)
     load([inpath filesep files(tidx).name])
     plotidx = track.lat <= maxlat-5;
@@ -29,9 +30,23 @@ for tidx = 1:3:254
     truncidx = 1:5:nplotpts;
     scatterm(plotlat(truncidx),plotlon(truncidx),2,plotskew(truncidx),'filled')      
 end
-gridm; plabel; mlabel;
-geoshow('landareas.shp', 'FaceColor', [1 1 1]-0.1,'LineWidth',2)
 set(gca,'Color',[1 1 1]*0.6)
+
+
+
+%% Plot Longterm mean positions of the fronts
+extentnames = {'north','mean','south'};
+for i=1:3
+    
+    plotm(saf.(extentnames{i}).lat,saf.(extentnames{i}).lon,'k','LineWidth',2)
+    
+end
+
+gridm; plabel('PLabelMeridian','prime'); mlabel;
+geoshow('landareas.shp', 'FaceColor', [1 1 1]-0.1,'LineWidth',1)
+cax = colorbar('EastOutside');
+xlabel(cax,'Skewness')
+
 %%
 outpath = 'C:\Users\ashao\Documents\GitHub\matlab\projects\safaltimetry\poster\';
-export_fig([outpath 'skewness_global.eps'],'-eps','-cmyk')
+export_fig([outpath 'skewness_global.eps'],'-eps','-rgb')

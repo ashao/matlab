@@ -88,7 +88,7 @@ switch lower(mode)
     case 'median'
         y = median((window.*x2(index)));
     case 'mean'
-        y = mean((window.*x2(index)));
+        y = nanmean((window.*x2(index)));
     otherwise
         error('Unknown ''mode'' specified')
 end

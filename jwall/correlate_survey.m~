@@ -1,0 +1,5 @@
+importdata('jwallsurvey.csv');
+data = ans.data;
+[nsamp nvars] = size(data);
+
+[cvals pvals] = corrcoef(data);

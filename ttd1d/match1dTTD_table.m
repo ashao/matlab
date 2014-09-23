@@ -75,16 +75,16 @@ end
 %% Define some basic parameters of this routine, these are tunable
 
 if ~exist('maxerr','var')
-    maxerr = 1e-6; %Default 1e-6, set this pretty low, otherwise false convergence
+    maxerr = 0.01; %Default 1e-6, set this pretty low, otherwise false convergence
 end
 if ~exist('minpecletsqr','var')
     minpecletsqr = 0.01; % Min ratio of delta/gamma,
 end
 if ~exist('maxpecletsqr','var')
-    maxpecletsqr = 100.0; % Max ratio of delta/gamma
+    maxpecletsqr = 10.0; % Max ratio of delta/gamma
 end
 if ~exist('x0','var')
-    x0=[100 100];
+    x0=[50 50];
 end
 if ~exist('lb','var')
     lb = [0.1 0.1]; % Lower bound for mean age and width
@@ -126,34 +126,35 @@ source_scaled(isnan(source_scaled))=0;
 time_scaled = meastime - trac.time(intime); % Calculate as time since measurement
 time_scaled = flipud(time_scaled)';
 
+% plot(time_scaled,source_scaled);
+% pause
+
 iter = 0;
 tracerr = Inf;
 range = 1;
 while tracerr > maxerr & iter < maxiter
-    
+%     disp(iter)
     range = range*0.9;
     iter = iter+1;
     
     if iter > 2
         [gammagrid deltagrid] = makegrid(x0, res,range);
     else
-        [gammagrid deltagrid] = meshgrid(linspace(0.1, 1000, 1000));
+        [gammagrid deltagrid] = meshgrid(linspace(0.1, 2000, 100));
     end
         
     
     if strcmpi(confun,'fixed')
         deltagrid = sqrt(gammagrid.^2./pe);
         gammagrid = [diag(gammagrid) ; x0(1)];
-        deltagrid = [diag(deltagrid) ; x0(2)];
-        
-        
+        deltagrid = [diag(deltagrid) ; x0(2)];                
     end
     Gconv = convTTDsource(gammagrid(:), deltagrid(:),time_scaled,source_scaled);    
-    [tracerr bestidx] = min(abs(Gconv-pCFC));
+    [tracerr bestidx] = min(abs(Gconv-pCFC)./pCFC);
     gamma = gammagrid(bestidx);
-    delta = deltagrid(bestidx);
+    delta = gammagrid(bestidx);
     x0 = [gamma delta];
-    fprintf('Iter: %d Gamma:%f Delta:%f Error: %f\n',iter,gamma,delta,tracerr)
+    fprintf('Iter: %d Gamma:%f pCFC: %f Error: %f\n',iter,gamma,pCFC,tracerr)
 end
 
 gamma = gammagrid(bestidx);
@@ -182,12 +183,12 @@ end
 function [ Gconv ] = convTTDsource(gammagrid,deltagrid,time,source)
 
 timeconv = linspace(0,max(time),1000);
-sourceconv = interp1(time,source,timeconv);
+sourceconv = interp1(time,source,timeconv,'linear','extrap');
 npts = length(gammagrid);
 Gconv = zeros(npts,1);
 
-for pt = 1:npts
-    G = inverse_gaussian([gammagrid(pt) deltagrid(pt)],timeconv);
+for pt = 1:npts    
+    G = inverse_gaussian([gammagrid(pt) gammagrid(pt)],timeconv);
     Gconv(pt) = trapz(timeconv,G.*sourceconv);
 end
 

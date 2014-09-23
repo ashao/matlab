@@ -26,8 +26,8 @@ numtracks = 1000;
 % UB=[10 5  10];
 % x0 = [1.5 0.2 2];
 
-datap = polyfit(datay,dataskew,1);
-dataline = polyval(datap,datay);
+% datap = polyfit(datay,dataskew,1);
+% dataline = polyval(datap,datay);
 
 
 %% Make a random seed with small skewness
@@ -37,7 +37,7 @@ while abs(skewness(randn_seed))>0.001
 end
 
 
-options=psoptimset('Display','None','TolMesh',1e-12,'TolX',1e-12,'TolFun',1e-9);
+options=psoptimset('Display','None','TolMesh',1e-12,'TolX',1e-12,'TolFun',1e-9,'CompletePoll','on','CompleteSearch','on');
 %  options = saoptimset('Display','Iter','TolFun',1e-9);
 % [optimal fval]=simulannealbnd(@fitskew,x0,LB,UB,options);
 [optimal fval]=patternsearch(@fitskew,x0,[],[],[],[],LB,UB,[],options);
@@ -52,15 +52,16 @@ UB = optimal+optimal*0.1;
 %         simp = polyfit(datay,simskew,1);
 %         simline = polyval(simp,datay);
 %         residual = sum( (simline-dataline).^2);
-        residual = sum( (dataskew-simskew).^2 );
+        residual = nansum( (dataskew-simskew).^2 );
         
     end
 
     function simskew = gensim(parameters)
-
+        
         var=parameters(1);
         center_x0=parameters(2);
         L=parameters(3);
+
         randn_seed=randn(numtracks,1);
         center_x0=center_x0+var*randn_seed;
         nl=length(randn_seed);
