@@ -62,11 +62,11 @@ function [ax,hfill]=cbarf(v,L,mode,scale);
 
 % find previous cbarf:
 ax0=gca;
-%ax=[findobj(gcf,'tag','cbarf_horiz') findobj(gcf,'tag','cbarf_vertical')];
+% ax=[findobj(gcf,'tag','cbarf_horiz') findobj(gcf,'tag','cbarf_vertical')];
 ax=get(gca,'userdata');
 if isempty(ax), newCbar=1; else newCbar=0; end
 if ~newCbar
-  tag=get(ax,'tag');
+t  tag=get(ax,'tag');
   i=find(tag=='_');
   mode=tag(i(1)+1:i(2)-1);
   scale=tag(i(2)+1:end);
